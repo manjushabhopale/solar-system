@@ -11,7 +11,7 @@ pipeline {
         stage('Installing Dependencies')
         {
             steps {
-                sh 'npm install --no-audit'
+                sh 'npm install'
             }
         }
         stage('Dependency Fix')
