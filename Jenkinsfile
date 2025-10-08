@@ -14,15 +14,32 @@ pipeline {
                 sh 'npm install --no-audit'
             }
         }
-        stage('NPM Dependency Audit')
-         {
-                steps {
-                        sh '''
-                            npm audit --audit-level=critical
-                            echo $?
-                        '''
-                    }
+        stage('Dependency Fix')
+        {
+            parallel {
+                stage('NPM Dependency Audit')
+                {
+                        steps {
+                                sh '''
+                                    npm audit --audit-level=critical
+                                    echo $?
+                                '''
+                        }
+                }
+                stage('OWASP Dependency Check') {
+                            steps {
+                                dependencyCheck additionalArguments: '''
+                                    --scan ./
+                                    --out ./
+                                    --format ALL
+                                    --disableYarnAudit
+                                    --prettyPrint''', odcInstallation: 'OWASP-12-1-6'
+
+                                dependencyCheckPublisher failedTotalCritical: 1, pattern: 'dependency-check-report.xml', stopBuild: false
+                            }
+                }
             }
+        }
  /*       stage('NPM test')
         {
             steps {
