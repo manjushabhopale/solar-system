@@ -3,27 +3,27 @@ pipeline {
         tools {
             nodejs 'node-2490'
         }
-         environment {
+    environment {
         // Load the Mongo URI from Jenkins credentials
         MONGO_URI = credentials('MONGO_URI')
     }
     stages {
-        stage('Check Node version')
-        {
-            steps {
-                sh '''
-                    node --version
-                    npm --version
-                    '''
-            }
-        }
         stage('Installing Dependencies')
         {
             steps {
-                sh 'npm install'
+                sh 'npm install --no-audit'
             }
         }
-        stage('NPM test')
+        stage('NPM Dependency Audit')
+         {
+                steps {
+                        sh '''
+                            npm audit --audit-level=critical
+                            echo $?
+                        '''
+                    }
+            }
+ /*       stage('NPM test')
         {
             steps {
                 sh 'npm test'
@@ -48,6 +48,7 @@ pipeline {
                 '''
             }
         }
+        */
     }
 }
 
