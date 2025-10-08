@@ -40,13 +40,13 @@ pipeline {
                 }
             }
         }
- /*       stage('NPM test')
+        stage('NPM test')
         {
             steps {
                 sh 'npm test'
             }
         }
-        stage('Docker Build')
+    /*    stage('Docker Build')
         {
             steps {
                 sh '''
