@@ -6,6 +6,7 @@ pipeline {
     environment {
         // Load the Mongo URI from Jenkins credentials
         MONGO_URI = credentials('MONGO_URI')
+        IMAGE_TAG = "v${BUILD_NUMBER}"
     }
     stages {
         stage('Installing Dependencies')
@@ -14,7 +15,7 @@ pipeline {
                 sh 'npm install'
             }
         }
-        stage('Dependency Fix')
+        /* stage('Dependency Fix')
         {
             parallel {
                 stage('NPM Dependency Audit')
@@ -45,27 +46,56 @@ pipeline {
             steps {
                 sh 'npm test'
             }
-        }
-    /*    stage('Docker Build')
+        }*/
+        stage('Docker Build')
         {
             steps {
-                sh '''
-                docker build -t solar-system .
+                sh 'docker build -t dev/solar-system:${IMAGE_TAG} . '
+            }
+        }
+        stage('Trivy Scan')
+        {
+            steps{
+                sh  ''' 
+                    trivy image dev/solar-system:${IMAGE_TAG} \
+                        --severity LOW,MEDIUM,HIGH \
+                        --exit-code 0 \
+                        --quiet \
+                        --format json -o trivy-image-MEDIUM-results.json
+
+                    trivy image dev/solar-system:${IMAGE_TAG} \
+                        --severity CRITICAL \
+                        --exit-code 1 \
+                        --quiet \
+                        --format json -o trivy-image-CRITICAL-results.json
                 '''
             }
         }
-        stage('Docker run')
+        stage("aws login")
         {
-            steps {
-                sh '''
-                docker run -d --name solar-system \
-                -p 3000:3000 \
-                -e $MONGO_URI \
-                solar-system:latest
-                '''
+            steps{
+               withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+            sh 'aws s3 ls'
+        }
             }
         }
-        */
+        stage('LOgin to ECR')
+        {
+            steps {
+                
+                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                script {
+                        sh '''
+                        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 307946649652.dkr.ecr.ap-south-1.amazonaws.com
+                        docker tag dev/solar-system:${IMAGE_TAG} 307946649652.dkr.ecr.ap-south-1.amazonaws.com/dev/solar-system:${IMAGE_TAG}
+                        docker push 307946649652.dkr.ecr.ap-south-1.amazonaws.com/dev/solar-system:${IMAGE_TAG}
+                        '''
+                    }
+                }
+               
+            }
+        }
+        
     }
 }
 
