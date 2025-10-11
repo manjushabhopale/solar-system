@@ -120,6 +120,26 @@ pipeline {
                 }
             }
         }
+        stage('K8S - Update Image Tag') {
+            steps {
+                sh 'git clone -b main https://github.com/manjushabhopale/solar-system-k8s.git'
+                dir("solar-system-k8s") {
+                    sh '''
+                        #### Replace Docker Tag ####
+                        git checkout main
+                        sed -i "s#dev/solar-system.*#dev/solar-system:$BUILD_NUMBER#g" deployment.yml
+                        cat deployment.yml
+                        
+                        #### Commit and Push to Feature Branch ####
+                        git config --global user.email "manjushabhopale95.com"
+                        git remote set-url origin https://github.com/manjushabhopale/solar-system-k8s.git
+                        git add .
+                        git commit -am "Updated docker image"
+                        git push -u origin main
+                    '''
+                }
+            }
+        }
     }
     post {
         always {
