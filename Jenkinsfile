@@ -129,7 +129,7 @@ pipeline {
                         #### Replace Docker Tag ####
                         git checkout main
                         sed -i "s#dev/solar-system.*#dev/solar-system:$BUILD_NUMBER#g" deployment.yaml
-                        cat deployment.yml
+                        cat deployment.yaml
                         
                         #### Commit and Push to Feature Branch ####
                         git config --global user.email "manjushabhopale95.com"
