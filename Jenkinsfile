@@ -7,6 +7,8 @@ pipeline {
         // Load the Mongo URI from Jenkins credentials
         MONGO_URI = credentials('MONGO_URI')
         IMAGE_TAG = "v${BUILD_NUMBER}"
+        SONAR_TOKEN = credentials('sonarcloud-token')
+        SONARQUBE = 'SonarCloud'
     }
     stages {
         stage('Installing Dependencies')
@@ -15,7 +17,7 @@ pipeline {
                 sh 'npm install'
             }
         }
-        /* stage('Dependency Fix')
+        stage('Dependency Fix')
         {
             parallel {
                 stage('NPM Dependency Audit')
@@ -46,7 +48,25 @@ pipeline {
             steps {
                 sh 'npm test'
             }
-        }*/
+        }
+        stage('SonarCloud Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE}") {
+                    withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                        ${tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'}/bin/sonar-scanner \
+                          -Dsonar.organization=manjushabhopale \
+                          -Dsonar.projectKey=manjushabhopale_solar-system-manual \
+                          -Dsonar.sources=. \
+                          -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info \
+                          -Dsonar.host.url=https://sonarcloud.io \
+                          -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Docker Build')
         {
             steps {
@@ -55,8 +75,8 @@ pipeline {
         }
         stage('Trivy Scan')
         {
-            steps{
-                sh  ''' 
+            steps {
+                sh  '''
                     trivy image dev/solar-system:${IMAGE_TAG} \
                         --severity LOW,MEDIUM,HIGH \
                         --exit-code 0 \
@@ -71,20 +91,19 @@ pipeline {
                 '''
             }
         }
-        stage("aws login")
+        stage('aws login')
         {
-            steps{
-               withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
-            sh 'aws s3 ls'
-        }
+            steps {
+                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                    sh 'aws s3 ls'
+                }
             }
         }
         stage('LOgin to ECR')
         {
             steps {
-                
                 withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
-                script {
+                    script {
                         sh '''
                         aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 307946649652.dkr.ecr.ap-south-1.amazonaws.com
                         docker tag dev/solar-system:${IMAGE_TAG} 307946649652.dkr.ecr.ap-south-1.amazonaws.com/dev/solar-system:${IMAGE_TAG}
@@ -92,10 +111,8 @@ pipeline {
                         '''
                     }
                 }
-               
             }
         }
-        
     }
 }
 
