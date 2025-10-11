@@ -122,12 +122,13 @@ pipeline {
         }
         stage('K8S - Update Image Tag') {
             steps {
+                 sh 'rm -rf solar-system-k8s'
                 sh 'git clone -b main https://github.com/manjushabhopale/solar-system-k8s.git'
                 dir("solar-system-k8s") {
                     sh '''
                         #### Replace Docker Tag ####
                         git checkout main
-                        sed -i "s#dev/solar-system.*#dev/solar-system:$BUILD_NUMBER#g" deployment.yml
+                        sed -i "s#dev/solar-system.*#dev/solar-system:$BUILD_NUMBER#g" deployment.yaml
                         cat deployment.yml
                         
                         #### Commit and Push to Feature Branch ####
