@@ -46,7 +46,14 @@ pipeline {
         stage('NPM test')
         {
             steps {
-                sh 'npm test'
+                sh 'npm test -- --coverage'
+            }
+        }
+        stage('Code Coverage') {
+            steps {
+                catchError(buildResult: 'SUCCESS', message: 'Oops! it will be fixed in future releases', stageResult: 'UNSTABLE') {
+                    sh 'npm run coverage'
+                }
             }
         }
         stage('SonarCloud Analysis') {
@@ -58,7 +65,7 @@ pipeline {
                           -Dsonar.organization=manjushabhopale \
                           -Dsonar.projectKey=manjushabhopale_solar-system-manual \
                           -Dsonar.sources=. \
-                          -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info \
+                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
                           -Dsonar.host.url=https://sonarcloud.io \
                           -Dsonar.login=$SONAR_TOKEN
                         """
@@ -112,6 +119,12 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            //junit 'coverage/**/*.xml' // Optional: to visualize test results in Jenkins
+            publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: 'coverage/lcov-report', reportFiles: 'index.html', reportName: 'Code Coverage HTML Report', reportTitles: '', useWrapperFileDirectly: true])
         }
     }
 }
