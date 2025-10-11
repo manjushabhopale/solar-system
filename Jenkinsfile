@@ -129,7 +129,7 @@ pipeline {
                     sh '''
                         #### Replace Docker Tag ####
                         git checkout main
-                        sed -i "s#dev/solar-system.*#dev/solar-system:$BUILD_NUMBER#g" deployment.yaml
+                        sed -i "s#dev/solar-system.*#dev/solar-system:$IMAGE_TAG#g" deployment.yaml
                         cat deployment.yaml
                         
                         #### Commit and Push to Feature Branch ####
